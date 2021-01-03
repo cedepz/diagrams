@@ -1,0 +1,166 @@
+<html>
+<head>
+<!--link rel="stylesheet" href="codemirror.css">
+<script src="codemirror.js"></script-->
+<!-- CSS only -->
+<link href="./lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<script src="./lib/monaco/min/vs/loader.js"></script>
+<script src="./lib/pako/pako_deflate.min.js"></script>
+</head>
+<body>
+
+  <!--div class="container"-->
+      
+      <div id="editor" ></div>
+      <div id="hiddenform">
+        <form id="diagramform" action="/diagram" target="image-iframe" method="post">
+          <textarea name="code" id="code"></textarea>
+          <input type="submit" value="post"/>
+        </form>
+      </div>
+      <div id="image"></div>
+      <iframe id="image-iframe" name="image-iframe" src="/" scrolling="no"></iframe>
+  <!--/div-->
+
+  <script>
+    window.onload = function () {
+      require.config({ paths: { vs: './lib/monaco/min/vs' } });
+
+      require(['vs/editor/editor.main'], function () {
+        var editor = monaco.editor.create(document.getElementById('editor'), {
+          value: ['from diagrams import Diagram',
+                  'from diagrams.aws.compute import EC2',
+                  'from diagrams.aws.database import RDS',
+                  'from diagrams.aws.network import ELB',
+                  '',
+                  'with Diagram("Grouped Workers", show=False, direction="TB"):',
+                  '\tELB("lb") >> [EC2("worker1"),',
+                  '\t\tEC2("worker2"),',
+                  '\t\tEC2("worker3"),',
+                  '\t\tEC2("worker4"),',
+                  '\t\tEC2("worker5")] >> RDS("events")']
+          .join('\n'),
+          language: 'python'
+        });
+
+
+        var myBinding = editor.addCommand(monaco.KeyCode.F9, function() {
+          //alert(editor.getModel().getValue());          
+
+          var diagramSource = editor.getModel().getValue()
+
+          /*var form = document.createElement("form"); 
+          form.setAttribute("method", "post"); 
+          form.setAttribute("action", "/diagram"); 
+          form.setAttribute("method", "/post"); 
+
+          var textarea = document.createElement("textarea"); 
+          textarea.value = diagramSource;
+
+          form.appendChild(textarea);*/
+          var textarea = document.getElementById("code"); 
+          textarea.value = diagramSource;
+          var form = document.getElementById("diagramform");           
+          form.submit();  
+
+/*          var XHR = new XMLHttpRequest();
+          var FD  = new FormData();
+          FD.append("code", diagramSource);
+          // Définissez ce qui se passe si la soumission s'est opérée avec succès
+          XHR.addEventListener('load', function(event) {
+            alert('Ouais ! Données envoyées et réponse chargée.');
+            document.getElementById("image").innerHTML=XHR.responseText+"<BR>"+"<IMG SRC='../mgdiagram/"+XHR.responseText+"'/>"
+          });
+
+          // Definissez ce qui se passe en cas d'erreur
+          XHR.addEventListener('error', function(event) {
+            alert('Oups! Quelque chose s\'est mal passé.');
+          });
+
+          // Configurez la requête
+          XHR.open('POST', '../compress');
+
+          // Expédiez l'objet FormData ; les en-têtes HTTP sont automatiquement définies
+          XHR.send(FD);
+
+          /*var data = textEncode(diagramSource)
+          var compressed = pako.deflate(data, { level: 9, to: 'string' })
+          var result = btoa(compressed)
+            .replace(/\+/g, '-').replace(/\//g, '_')
+
+          console.log(result)*/
+        });
+      });
+
+
+
+      layout();
+            
+    }
+
+  function textEncode(str) {
+    if (window.TextEncoder) {
+      return new TextEncoder('utf-8').encode(str);
+    }
+    var utf8 = unescape(encodeURIComponent(str));
+    var result = new Uint8Array(utf8.length);
+    for (var i = 0; i < utf8.length; i++) {
+      result[i] = utf8.charCodeAt(i);
+    }
+    return result;
+  }
+
+    function layout() {
+            
+      var hiddenFormContainer = document.getElementById('hiddenform');
+      hiddenFormContainer.hidden=true;
+
+			var GLOBAL_PADDING = 20;
+
+			var WIDTH = window.innerWidth - 2 * GLOBAL_PADDING;
+			var HEIGHT = window.innerHeight;
+
+      var TITLE_HEIGHT = 110;
+      var FOOTER_HEIGHT = 80;
+      var TABS_HEIGHT = 20;
+      var INNER_PADDING = 20;
+      var SWITCHER_HEIGHT = 30;
+
+  		var HALF_WIDTH = Math.floor((WIDTH - INNER_PADDING) / 2);
+	  	var REMAINING_HEIGHT = HEIGHT - TITLE_HEIGHT - FOOTER_HEIGHT - SWITCHER_HEIGHT;
+      
+      var editorContainer = document.getElementById('editor');
+      editorContainer.style.position = 'absolute';
+			editorContainer.style.boxSizing = 'border-box';
+			editorContainer.style.top = TABS_HEIGHT + 'px';
+			editorContainer.style.left = 0;
+			editorContainer.style.width = HALF_WIDTH + 'px';
+			editorContainer.style.height = (REMAINING_HEIGHT - TABS_HEIGHT) + 'px';
+
+      var imageContainer = document.getElementById('image-iframe');
+      imageContainer.style.position = 'absolute';
+			imageContainer.style.boxSizing = 'border-box';
+			imageContainer.style.top = TABS_HEIGHT + 'px';
+			imageContainer.style.left = HALF_WIDTH + 'px';
+			imageContainer.style.width = HALF_WIDTH + 'px';
+      imageContainer.style.height = (REMAINING_HEIGHT - TABS_HEIGHT) + 'px';
+      
+      
+			//container.style.width = WIDTH + 'px';
+			//container.style.height = (HEIGHT - FOOTER_HEIGHT) + 'px';
+
+    }
+  </script>
+
+<!--form action="/diagram" method="post">
+	Diagram code : <textarea id="code" name="code"></textarea><br>
+	<input type="submit" value="submit" class="btn btn-primary"/>
+</form-->
+<!--script>
+  var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+    lineNumbers: true,
+    mode: 'text/x-python'
+  });
+</script-->
+</body>
+</html>
