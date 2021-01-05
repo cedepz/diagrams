@@ -54,15 +54,19 @@ def diagramgen():
     os.remove(APP_BASE+"/generated/"+fileid+".png")
     return res
 
-@app.route('/mgdiagram/<string:path>', methods = ['GET'])
-def mgdiagramgen(path):
+@app.route('/mgdiagram/<string:encodedcode>', methods = ['GET'])
+def mgdiagramgen(encodedcode):
     fileid = str(uuid.uuid4())
-    code = str(zlib.decompress(base64.urlsafe_b64decode(path)))
+    print("encoded str:"+encodedcode)
+    code = zlib.decompress(base64.urlsafe_b64decode(encodedcode)).decode()
+    #source = request.values['code']
+    #code = str(zlib.decompress(base64.urlsafe_b64decode(source[:len(source)-1])))
     print("origin str:"+code)
     p = re.compile('with[ ]*Diagram\(([^\)]*)\)') 
     codewithfilename = p.sub("with Diagram(\g<1>, filename=\""+APP_BASE+"/generated/"+fileid+"\")",code,1)
-    #print("modified str:"+codewithfilename)
+    print("modified str:"+codewithfilename)    
     exec(codewithfilename)
+
     res = send_from_directory(APP_BASE+'/generated', fileid+".png");    
     os.remove(APP_BASE+"/generated/"+fileid+".png")
     return res

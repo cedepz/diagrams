@@ -5,29 +5,35 @@
 <!-- CSS only -->
 <link href="./lib/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <script src="./lib/monaco/min/vs/loader.js"></script>
-<script src="./lib/pako/pako_deflate.min.js"></script>
+<!--script src="./lib/pako/pako_deflate.min.js"></script-->
+<script src="https://unpkg.com/pako@1.0.10/dist/pako_deflate.min.js"></script>
 </head>
 <body>
 
   <!--div class="container"-->
       
-      <div id="editor" ></div>
+    <div id="editor" >
+      <div><button type="button" class="btn btn-light" onclick="generateImage();">
+        <svg class="bi" width="16" height="16" fill="currentColor"><use xlink:href="./img/bootstrap-icons.svg#play-circle"/></svg>
+      </button></div>
+    </div>
       <div id="hiddenform">
         <form id="diagramform" action="/diagram" target="image-iframe" method="post">
           <textarea name="code" id="code"></textarea>
           <input type="submit" value="post"/>
         </form>
       </div>
-      <div id="image"></div>
-      <iframe id="image-iframe" name="image-iframe" src="/" scrolling="no"></iframe>
+      <div id="image-iframe"><div id="image"></div></div>
+      <!--iframe id="image-iframe" name="image-iframe" src="/" scrolling="no"></iframe-->
   <!--/div-->
 
   <script>
+    var editor
     window.onload = function () {
       require.config({ paths: { vs: './lib/monaco/min/vs' } });
 
       require(['vs/editor/editor.main'], function () {
-        var editor = monaco.editor.create(document.getElementById('editor'), {
+        editor = monaco.editor.create(document.getElementById('editor'), {
           value: ['from diagrams import Diagram',
                   'from diagrams.aws.compute import EC2',
                   'from diagrams.aws.database import RDS',
@@ -40,56 +46,14 @@
                   '\t\tEC2("worker4"),',
                   '\t\tEC2("worker5")] >> RDS("events")']
           .join('\n'),
-          language: 'python'
+          language: 'python',
+          minimap: {
+            enabled: false
+          }
         });
 
 
-        var myBinding = editor.addCommand(monaco.KeyCode.F9, function() {
-          //alert(editor.getModel().getValue());          
-
-          var diagramSource = editor.getModel().getValue()
-
-          /*var form = document.createElement("form"); 
-          form.setAttribute("method", "post"); 
-          form.setAttribute("action", "/diagram"); 
-          form.setAttribute("method", "/post"); 
-
-          var textarea = document.createElement("textarea"); 
-          textarea.value = diagramSource;
-
-          form.appendChild(textarea);*/
-          var textarea = document.getElementById("code"); 
-          textarea.value = diagramSource;
-          var form = document.getElementById("diagramform");           
-          form.submit();  
-
-/*          var XHR = new XMLHttpRequest();
-          var FD  = new FormData();
-          FD.append("code", diagramSource);
-          // Définissez ce qui se passe si la soumission s'est opérée avec succès
-          XHR.addEventListener('load', function(event) {
-            alert('Ouais ! Données envoyées et réponse chargée.');
-            document.getElementById("image").innerHTML=XHR.responseText+"<BR>"+"<IMG SRC='../mgdiagram/"+XHR.responseText+"'/>"
-          });
-
-          // Definissez ce qui se passe en cas d'erreur
-          XHR.addEventListener('error', function(event) {
-            alert('Oups! Quelque chose s\'est mal passé.');
-          });
-
-          // Configurez la requête
-          XHR.open('POST', '../compress');
-
-          // Expédiez l'objet FormData ; les en-têtes HTTP sont automatiquement définies
-          XHR.send(FD);
-
-          /*var data = textEncode(diagramSource)
-          var compressed = pako.deflate(data, { level: 9, to: 'string' })
-          var result = btoa(compressed)
-            .replace(/\+/g, '-').replace(/\//g, '_')
-
-          console.log(result)*/
-        });
+        var myBinding = editor.addCommand(monaco.KeyCode.F9, generateImage());
       });
 
 
@@ -97,6 +61,47 @@
       layout();
             
     }
+
+  function generateImage() {
+
+    var diagramSource = editor.getModel().getValue()
+
+    var XHR = new XMLHttpRequest();
+    var FD  = new FormData();
+    FD.append("code", diagramSource);
+
+    XHR.addEventListener('load', function(event) {
+      document.getElementById("image").innerHTML='<div>'
+        + '<button type="button" class="btn btn-light">'
+        + '<a href="'+getBase()+'/mgdiagram/'+XHR.responseText+'" download="image.png">'
+        + '<svg class="bi" width="16" height="16" fill="#000000"><use xlink:href="./img/bootstrap-icons.svg#download"/></svg>'
+        + '</a>'
+        + '</button>'
+        + '&nbsp;'
+        + '<button type="button" class="btn btn-light">'
+        + '<a target="_blank" href="'+getBase()+'/mgdiagram/'+XHR.responseText+'">'
+        + '<svg class="bi" width="16" height="16" fill="#000000"><use xlink:href="./img/bootstrap-icons.svg#arrows-fullscreen"/></svg>'
+        + '</a>'
+        + '</button>'
+        + '</div>'
+        +'<BR>'
+        +'<IMG class="img-fluid" SRC="../mgdiagram/'+XHR.responseText+'"/>'
+    });
+
+    XHR.addEventListener('error', function(event) {
+      alert('Oops something went wrong.');
+    });
+
+    XHR.open('POST', '../compress');
+    XHR.send(FD);
+
+  }
+
+  function getBase() {
+    var ref = window.location.href
+    var current = ref.substring(0,ref.lastIndexOf('/'))    
+    return current.substring(0,current.lastIndexOf('/'))
+  }
 
   function textEncode(str) {
     if (window.TextEncoder) {
@@ -108,6 +113,10 @@
       result[i] = utf8.charCodeAt(i);
     }
     return result;
+  }
+
+  function compress(data) {
+    return pako.deflate(data, { level: 9, to: 'string' })
   }
 
     function layout() {
